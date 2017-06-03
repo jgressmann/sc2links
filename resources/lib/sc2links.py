@@ -1,8 +1,10 @@
+__author__ = 'jgressmann'
+
 from bs4 import BeautifulSoup
 import requests
 import urlparse
-import dateutil
-from dateutil.parser import parse
+from dateutil.parser import parse as parse_datetime
+
 
 def get_bs(url):
     r = requests.get(url)
@@ -11,6 +13,20 @@ def get_bs(url):
 
     return BeautifulSoup(r.content, 'html.parser')
 
+def replace_html_entities(str):
+    #print('replace html in: ' + repr(str))
+    str = str or ''
+    str = str.replace(u'\xa0', ' ')
+    #print('replace html out: ' + repr(str))
+    return str
+
+def cleanup_html_strings(strings):
+    #print('cleanup html in: ' + repr(strings))
+    strings = map(replace_html_entities, strings)
+    strings = map(lambda x: x.strip(), strings)
+    strings = filter(lambda x: x, strings)
+    #print('cleanup html in: ' + repr(strings))
+    return strings
 
 class Video:
     def __init__(self, parent, url, name, date, extra):
@@ -67,8 +83,6 @@ class Collection:
 
     def load(self):
         def keep_text(s):
-            if not s:
-                return False
             if s.lower().startswith('reveal'):
                 return False
             return True
@@ -83,9 +97,9 @@ class Collection:
 
         def is_date(str):
             try:
-                date = dateutil.parser.parse(str)
+                date = parse_datetime(str)
                 return True
-            except:
+            except Exception as e:
                 return False
 
 
@@ -94,25 +108,28 @@ class Collection:
 
         children = []
         for heading in headings:
-            name = u' '.join(heading.stripped_strings)
+            texts = cleanup_html_strings(heading.stripped_strings)
+            name = u' '.join(texts)
             sibling = heading.next_sibling
             if sibling:
                 table = sibling.parent
                 if table and table.name == 'table':
                     g2 = Grouping(self, name)
                     for row in table.find_all('tr'):
-                        texts = filter(keep_text, row.stripped_strings)
+                        texts = cleanup_html_strings(row.stripped_strings)
+                        texts = filter(keep_text, texts)
                         dates = filter(is_date, texts)
 
+                        date = None
                         if len(dates):
-                            date = dateutil.parser.parse(dates[0])
+                            date = parse_datetime(dates[0])
                             texts.remove(dates[0])
 
                         href = row.find('a')['href']
-                        episode = texts[0]
+                        title = texts[0]
                         extra = u' '.join(texts[1:])
 
-                        g2.videos.append(Video(g2, href, episode, date, extra))
+                        g2.videos.append(Video(g2, href, title, date, extra))
 
                     children.append(g2)
 
@@ -139,7 +156,8 @@ class Sc2Links:
         for link in soup.find_all('a'):
             href = link.get('href')
             if href and href.startswith('tournament.php?'):
-                name = u' '.join(link.stripped_strings)
+                texts = cleanup_html_strings(link.stripped_strings)
+                name = u' '.join(texts)
                 self.__links.append(Collection(name, Sc2Links.DOMAIN + '/' + href))
 
 

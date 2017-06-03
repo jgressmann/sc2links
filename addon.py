@@ -14,7 +14,14 @@ import xbmcplugin
 import resources.lib.sc2links as sc2links
 
 def debug(str):
-    xbmc.log(PREFIX + str, xbmc.LOGDEBUG)
+    try:
+        xbmc.log(PREFIX + str, xbmc.LOGDEBUG)
+    except:
+        try:
+            xbmc.log(PREFIX + 'try as UTF-8: ' + str.decode(str.encode('utf-8')), xbmc.LOGDEBUG)
+        except:
+            xbmc.log(PREFIX + ' exception, repr: ' + repr(str), xbmc.LOGDEBUG)
+
 
 def build_url(query):
     return sys.argv[0] + '?' + urllib.urlencode(query)
@@ -27,6 +34,9 @@ args = urlparse.parse_qs(sys.argv[2][1:])
 debug("url args: " + str(args))
 
 sc2 = sc2links.Sc2Links()
+
+revealMatches = addon.getSetting('reveal_matches') == 'true'
+debug('reveal matches: ' + str(revealMatches))
 
 def get_youtube_info(url):
     # parse something like https://www.youtube.com/watch?v=XqywDF675kQ
@@ -63,8 +73,10 @@ def add_video(v):
 
         item.setInfo('video', videoLabels)
 
-        if v.extra:
-            item.setLabel(u'{} - {}'.format(v.name, v.extra))
+        if revealMatches and v.extra:
+            label = u'{} - {}'.format(v.name, v.extra)
+            #debug(u'label: ' + label)
+            item.setLabel(label)
         else:
             item.setLabel(v.name)
 
