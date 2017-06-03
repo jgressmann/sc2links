@@ -1,6 +1,6 @@
 __author__ = 'jgressmann'
 
-PREFIX = 'SC2 '
+PREFIX = u'SC2 '
 
 import sys
 import urllib
@@ -56,7 +56,7 @@ def add_video(v):
         item.setInfo('video', {'date': v.date})
 
         if v.extra:
-            item.setLabel('{} - {}'.format(v.name, v.extra))
+            item.setLabel(u'{} - {}'.format(v.name, v.extra))
         else:
             item.setLabel(v.name)
 
@@ -73,17 +73,16 @@ def add_video(v):
 
 
 def build(path):
-    slashPath = '/'.join(path);
-    debug('path2: ' + slashPath)
+    slashPath = u'/'.join(path);
+    #debug('path2: ' + slashPath)
     if 1 == len(path):
-        # fallback
         sc2.load()
         groupings = getattr(sc2, path[0])
         if callable(groupings):
             groupings = groupings()
 
         for g in groupings:
-            url = build_url({'path': '{}/{}'.format(slashPath, g.name), 'link': g.url})
+            url = build_url({'path': u'{}/{}'.format(slashPath, g.name), 'link': g.url})
             xbmcplugin.addDirectoryItem(handle, url, xbmcgui.ListItem(g.name), isFolder=1)
 
     else:
@@ -95,12 +94,12 @@ def build(path):
             if 2 == len(path):
                 for child in collection.children:
                     url = build_url({
-                        'path': '{}/{}'.format(slashPath, child.name),
+                        'path': u'{}/{}'.format(slashPath, child.name),
                         'link': link})
                     xbmcplugin.addDirectoryItem(handle, url, xbmcgui.ListItem(child.name), isFolder=1)
             else:
                 byHeading = [g for g in collection.children if g.name == path[2]]
-                debug("with heading: " + str(len(byHeading)))
+                debug(u"with heading: " + str(len(byHeading)))
                 if len(byHeading):
                     debug("#video: " + str(len(byHeading[0].videos)))
                     for v in byHeading[0].videos:
@@ -158,7 +157,7 @@ try:
         splitPath = filter(None, path.split('/'))
         debug('path1 len: ' + str(len(splitPath)))
         if len(splitPath) == 0:
-            debug('toplevel')
+            #debug('toplevel')
             url = build_url({'path': '/new'})
             xbmcplugin.addDirectoryItem(handle, url, xbmcgui.ListItem('New'), isFolder=1)
             url = build_url({'path': '/most_recent'})
@@ -171,7 +170,8 @@ try:
             build(splitPath)
 
 except Exception as e:
-    debug("Exception: " + str(e) + ' ' + str(traceback.format_exc()))
+    debug(u'Exception: ' + str(e))
+    map(debug, str(traceback.format_exc()).splitlines(keepends=False))
 
 xbmcplugin.endOfDirectory(handle)
 

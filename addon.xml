@@ -1,17 +1,16 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<addon id="plugin.video.sc2links" name="sc2links.com" version="0.1" provider-name="jgressmann">
+<addon id="plugin.video.sc2links" name="sc2links.com" version="0.1.0" provider-name="jgressmann">
     <requires>
         <import addon="xbmc.python" version="2.14.0"/>
-        <import addon="script.module.requests" version="2.12.4"/>
-        <!--import addon="script.module.beautifulsoup4" version="4.3.2"/-->
+        <import addon="script.module.beautifulsoup4" version="4.3.2" />
+        <import addon="script.module.requests" version="2.12.4" />
     </requires>
     <extension point="xbmc.python.pluginsource" library="addon.py">
         <provides>video</provides>
     </extension>
     <extension point="xbmc.addon.metadata">
         <platform>all</platform>
-        <summary lang="en">Access to videos from sc2links.com</summary>
-        <!--description lang="en">Lorem ipsum long</description-->
+        <summary lang="en">Access videos from sc2links.com</summary>
         <license>MIT</license>
         <language>en</language>
         <!--forum>http://forum.kodi.tv/showthread.php?tid=209948</forum-->
@@ -20,10 +19,7 @@
         <!--email>sc2links@0x42.de</email-->
         <assets>
             <icon>icon.png</icon>
-            <!--<fanart>fanart.jpg</fanart>
-            <screenshot>resources/screenshot-01.jpg</screenshot>
-            <screenshot>resources/screenshot-02.jpg</screenshot>
-            <screenshot>resources/screenshot-03.jpg</screenshot-->
+            <!--fanart>icon.png</fanart-->
         </assets>
         <news>Initial release</news>
     </extension>

@@ -84,7 +84,7 @@ class Collection:
 
         children = []
         for heading in headings:
-            name = ' '.join(heading.stripped_strings)
+            name = u' '.join(heading.stripped_strings)
             sibling = heading.next_sibling
             if sibling:
                 table = sibling.parent
@@ -95,7 +95,7 @@ class Collection:
                         href = row.find('a')['href']
                         episode = texts[0]
                         date = texts[1]
-                        extra = ' '.join(texts[2:])
+                        extra = u' '.join(texts[2:])
 
                         g2.videos.append(Video(g2, href, episode, date, extra))
 
@@ -124,7 +124,7 @@ class Sc2Links:
         for link in soup.find_all('a'):
             href = link.get('href')
             if href and href.startswith('tournament.php?'):
-                name = ' '.join(link.stripped_strings)
+                name = u' '.join(link.stripped_strings)
                 self.__links.append(Collection(name, Sc2Links.DOMAIN + '/' + href))
 
 
