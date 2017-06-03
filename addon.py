@@ -53,7 +53,15 @@ def add_video(v):
     time = data[1]
     if id:
         item = xbmcgui.ListItem()
-        item.setInfo('video', {'date': v.date})
+        videoLabels = {}
+        if v.date:
+            videoLabels['date'] = v.date.strftime("%d.%m.%Y") #date : string (d.m.Y / 01.01.2009) - file date
+            videoLabels['aired'] = v.date.strftime("%Y-%m-%d") #aired : string (2008-12-07)
+            videoLabels['year'] = v.date.year #year : integer (2009)
+            # dateadded: string(Y - m - d h:m:s = 2009 - 04 - 05 23:16:04)
+
+
+        item.setInfo('video', videoLabels)
 
         if v.extra:
             item.setLabel(u'{} - {}'.format(v.name, v.extra))
@@ -171,7 +179,7 @@ try:
 
 except Exception as e:
     debug(u'Exception: ' + str(e))
-    map(debug, str(traceback.format_exc()).splitlines(keepends=False))
+    map(debug, str(traceback.format_exc()).splitlines())
 
 xbmcplugin.endOfDirectory(handle)
 

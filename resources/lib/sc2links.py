@@ -1,6 +1,8 @@
 from bs4 import BeautifulSoup
 import requests
 import urlparse
+import dateutil
+from dateutil.parser import parse
 
 def get_bs(url):
     r = requests.get(url)
@@ -79,6 +81,14 @@ class Collection:
             cl = tag.get('class') or []
             return len(cl) == 1 and cl[0] == 'head_title'
 
+        def is_date(str):
+            try:
+                date = dateutil.parser.parse(str)
+                return True
+            except:
+                return False
+
+
         soup = get_bs(self.url)
         headings = soup.find_all(is_p_with_head_title_class)
 
@@ -92,10 +102,15 @@ class Collection:
                     g2 = Grouping(self, name)
                     for row in table.find_all('tr'):
                         texts = filter(keep_text, row.stripped_strings)
+                        dates = filter(is_date, texts)
+
+                        if len(dates):
+                            date = dateutil.parser.parse(dates[0])
+                            texts.remove(dates[0])
+
                         href = row.find('a')['href']
                         episode = texts[0]
-                        date = texts[1]
-                        extra = u' '.join(texts[2:])
+                        extra = u' '.join(texts[1:])
 
                         g2.videos.append(Video(g2, href, episode, date, extra))
 
