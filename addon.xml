@@ -19,7 +19,7 @@
         <!--website>Kodi.tv</website-->
         <!--email>sc2links@0x42.de</email-->
         <assets>
-            <icon>icon.png</icon>
+            <icon>resources/media/icon.png</icon>
             <!--fanart>icon.png</fanart-->
         </assets>
         <news>Initial release</news>
