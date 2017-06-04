@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <settings>
-	<setting id="youtube_play_timeout_s" type="number" option="int" default="20" label="Timeout in seconds before abandoning waiting for Youtube to start"/>
-	<setting id="youtube_seek_delay_s" type="number" option="int" default="5" label="Delay in seconds before seeking Youtube video"/>
+	<setting id="youtube_play_timeout_s" type="number" option="int" default="20" label="Time in seconds to wait for YouTube to start"/>
+	<setting id="youtube_seek_delay_s" type="number" option="int" default="5" label="Delay in seconds before seeking YouTube video"/>
 	<setting id="reveal_matches" type="bool" default="false" label="Reveal matches"/>
 </settings>
