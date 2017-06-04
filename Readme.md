@@ -22,7 +22,7 @@ What platforms are supported?
 
 What versions of Kodi are supported?
 
- - Kryption v17.x
+ - Krypton v17.x
  - older versions will probably work as well
 
 ## License
