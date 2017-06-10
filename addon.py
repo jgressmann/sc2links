@@ -1,7 +1,5 @@
 __author__ = 'jgressmann'
 
-PREFIX = u'SC2 '
-
 import sys
 import urllib
 import urlparse
@@ -13,21 +11,25 @@ import xbmcplugin
 
 import resources.lib.sc2links as sc2links
 
-def debug(str):
-    try:
-        xbmc.log(PREFIX + str, xbmc.LOGDEBUG)
-    except:
-        try:
-            xbmc.log(PREFIX + 'try as UTF-8: ' + str.decode(str.encode('utf-8')), xbmc.LOGDEBUG)
-        except:
-            xbmc.log(PREFIX + ' exception, repr: ' + repr(str), xbmc.LOGDEBUG)
+addon = xbmcaddon.Addon()
+#__addonname__ = addon.getAddonInfo('name')
+addonid = addon.getAddonInfo('id')
+
+def debug(val):
+    if isinstance(val, str) or isinstance(val, unicode):
+        pass
+    else:
+        val = repr(val)
+
+    message = u'%s: %s' % (addonid, val)
+
+    xbmc.log(message.encode('utf-8'), xbmc.LOGDEBUG)
 
 
 def build_url(query):
     return sys.argv[0] + '?' + urllib.urlencode(query)
 
-addon = xbmcaddon.Addon()
-addonname = addon.getAddonInfo('name')
+
 
 handle = int(sys.argv[1])
 args = urlparse.parse_qs(sys.argv[2][1:])
@@ -43,8 +45,8 @@ def get_youtube_info(url):
     parsed = urlparse.urlparse(url)
     args = urlparse.parse_qs(parsed.query)
     #debug(str(args))
-    time = args.get('t', [""])[0]
-    id = args.get('v', [""])[0]
+    time = args.get('t', [''])[0]
+    id = args.get('v', [''])[0]
     if not id:
         # parse something like https://youtu.be/3A3guAd42Dw?t=9
         if parsed.hostname == 'youtu.be':
@@ -173,11 +175,10 @@ try:
 
     else:
         path = args.get('path', ['/'])[0]
-        debug('path1: ' + str(path))
+        debug('path: ' + str(path))
         splitPath = filter(None, path.split('/'))
         debug('path1 len: ' + str(len(splitPath)))
         if len(splitPath) == 0:
-            #debug('toplevel')
             url = build_url({'path': '/new'})
             xbmcplugin.addDirectoryItem(handle, url, xbmcgui.ListItem('New'), isFolder=1)
             url = build_url({'path': '/most_recent'})
