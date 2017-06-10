@@ -11,7 +11,7 @@
     </extension>
     <extension point="xbmc.addon.metadata">
         <platform>all</platform>
-        <summary lang="en">Access videos from sc2links.com</summary>
+        <summary lang="en">Access to videos linked on sc2links.com</summary>
         <license>MIT</license>
         <language>en</language>
         <assets>
