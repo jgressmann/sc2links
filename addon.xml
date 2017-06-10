@@ -11,11 +11,16 @@
     </extension>
     <extension point="xbmc.addon.metadata">
         <platform>all</platform>
-        <summary lang="en">Access to videos linked on sc2links.com</summary>
+        <summary lang="en_US">Access to the VODs linked on sc2links.com</summary>
+        <disclaimer lang="en_US">You will probably also need to install the YouTube plugin to watch the VODs.</disclaimer>
         <license>MIT</license>
-        <language>en</language>
+        <language></language>
+        <source>https://github.com/jgressmann/sc2links</source>
         <assets>
-            <icon>resources/media/icon.png</icon>
+            <icon>resources/icon.png</icon>
+            <fanart>resources/fanart.jpeg</fanart>
+            <screenshot>resources/media/kodi-sc2links-main.jpeg</screenshot>
+            <screenshot>resources/media/kodi-sc2links-new.jpeg</screenshot>
         </assets>
         <news>Initial release</news>
     </extension>
