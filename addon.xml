@@ -11,8 +11,9 @@
     </extension>
     <extension point="xbmc.addon.metadata">
         <platform>all</platform>
-        <summary lang="en_US">Access to the VODs linked on sc2links.com</summary>
-        <disclaimer lang="en_US">The plugin's icon and fanart are copyright (c) by https://sc2links.com/[CR]Note that you will probably also have to install the YouTube plugin to watch the VODs.</disclaimer>
+        <summary lang="en_US">Access to the StarCraft VODs linked on sc2links.com</summary>
+        <description lang="en_US">Videos on demand (VODs) about Blizzard's StarCraft II (SC2) and StarCraft Broodwar (BW).[CR]Featured tournaments include ASL, GSL, SSL, and much, much more.[CR]GL HF!</description>
+        <disclaimer lang="en_US">The plugin's icon and fanart are copyright (c) https://sc2links.com/[CR]Note that you will probably also have to install the YouTube plugin to watch the VODs.</disclaimer>
         <license>MIT</license>
         <language></language>
         <source>https://github.com/jgressmann/sc2links</source>
