@@ -46,10 +46,19 @@ class Grouping:
 
 class Collection:
     def __init__(self, name, url):
-        self.name = name
+        index = name.find(' ')
+        if index > 0 and name[:index].isdigit():
+            self.year = int(name[:index])
+            self.name = name[index:].lstrip()
+        else:
+            self.name = name
+            self.year = None
+
+        #print('y={} n={}'.format(self.year, self.name))
         self.url = url
         self.args = urlparse.parse_qs(urlparse.urlparse(url).query)
         self.children = []
+
 
     @property
     def tab(self):
@@ -73,8 +82,11 @@ class Collection:
 
     @property
     def year(self):
+        if self.year:
+            return self.year
+
         if 'y' in self.args:
-            return self.args['y'][0]
+            return int(self.args['y'][0])
 
     @property
     def is_tournament(self):
