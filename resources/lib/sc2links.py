@@ -29,8 +29,7 @@ def cleanup_html_strings(strings):
     return strings
 
 class Video:
-    def __init__(self, parent, url, name, date, extra):
-        self.parent = parent
+    def __init__(self, url, name, date, extra):
         self.url = url
         self.name = name
         self.date = date
@@ -38,8 +37,7 @@ class Video:
 
 
 class Grouping:
-    def __init__(self, parent, name, videos=None):
-        self.parent = parent
+    def __init__(self, name, videos=None):
         self.name = name
         self.videos = videos or []
 
@@ -126,7 +124,7 @@ class Collection:
             if sibling:
                 table = sibling.parent
                 if table and table.name == 'table':
-                    g2 = Grouping(self, name)
+                    g2 = Grouping(name)
                     for row in table.find_all('tr'):
                         texts = cleanup_html_strings(row.stripped_strings)
                         texts = filter(keep_text, texts)
@@ -141,7 +139,7 @@ class Collection:
                         title = texts[0]
                         extra = u' '.join(texts[1:])
 
-                        g2.videos.append(Video(g2, href, title, date, extra))
+                        g2.videos.append(Video(href, title, date, extra))
 
                     children.append(g2)
 

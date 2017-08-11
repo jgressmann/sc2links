@@ -1,5 +1,6 @@
 __author__ = 'jgressmann'
 
+from datetime import date
 import sys
 import traceback
 import urllib
@@ -60,52 +61,94 @@ def get_youtube_info(url):
         return (id, time)
 
 
+def get_youtube_plugin_url(web_url):
+    data = get_youtube_info(web_url)
+    if data:
+        id = data[0]
+        time = data[1]
+        if id:
+            args = {'play': 'plugin://plugin.video.youtube/play/?video_id={}'.format(id)}
+            if time:
+                args['time'] = time
+            return build_url(args)
+
+
+def get_twitch_info(url):
+    # parse something like https://www.twitch.tv/videos/161472611?t=07h49m09s
+
+
+    def _twitch_time_to_seconds(t):
+        seconds = 0
+        buf = ''
+        for c in t:
+            if c == 'h':
+                if len(buf):
+                    seconds += int(buf) * 3600
+                    buf = ''
+            elif c == 'm':
+                if len(buf):
+                    seconds += int(buf) * 60
+                    buf = ''
+            elif c == 's':
+                if len(buf):
+                    seconds += int(buf)
+                    buf = ''
+            elif c.isdigit():
+                buf += c
+            else:
+                # oh well
+                pass
+
+        return seconds
+
+    parsed = urlparse.urlparse(url)
+    #debug('path: ' + str(parsed.path))
+    if parsed.path.find('/videos/') == 0:
+        id = parsed.path[8:]
+        #debug('id: ' + str(id))
+        if id and id.isdigit():
+            args = urlparse.parse_qs(parsed.query)
+            time = args.get('t', [None])[0]
+            if time:
+                time = _twitch_time_to_seconds(time)
+            return (id, time)
+
+
+def get_twitch_plugin_url(web_url):
+    data = get_twitch_info(web_url)
+    if data:
+        id = data[0]
+        time = data[1]
+        if id:
+            #@dispatcher.register(MODES.PLAY, kwargs=['seek_time', 'channel_id', 'video_id', 'slug', 'ask', 'use_player', 'quality'])
+            args = {'play': 'plugin://plugin.video.twitch/?mode=play&video_id={}'.format(id)}
+            if time:
+                args['time'] = time
+            return build_url(args)
+
 def add_video(v):
-    data = get_youtube_info(v.url)
-    id = data[0]
-    time = data[1]
-    if id:
+    plugin_url = get_youtube_plugin_url(v.url) or get_twitch_plugin_url(v.url)
+    debug('plugin url:' + plugin_url)
+    if plugin_url:
         item = xbmcgui.ListItem()
         videoLabels = {}
         if v.date:
-            videoLabels['date'] = v.date.strftime("%d.%m.%Y") #date : string (d.m.Y / 01.01.2009) - file date
-            videoLabels['aired'] = v.date.strftime("%Y-%m-%d") #aired : string (2008-12-07)
-            videoLabels['year'] = v.date.year #year : integer (2009)
+            videoLabels['date'] = v.date.strftime("%d.%m.%Y")  # date : string (d.m.Y / 01.01.2009) - file date
+            videoLabels['aired'] = v.date.strftime("%Y-%m-%d")  # aired : string (2008-12-07)
+            videoLabels['year'] = v.date.year  # year : integer (2009)
             # dateadded: string(Y - m - d h:m:s = 2009 - 04 - 05 23:16:04)
-
 
         item.setInfo('video', videoLabels)
 
         if revealMatches and v.extra:
             label = u'{} - {}'.format(v.name, v.extra)
-            #debug(u'label: ' + label)
+            # debug(u'label: ' + label)
             item.setLabel(label)
         else:
             item.setLabel(v.name)
 
-        item.setProperty('StartOffset', time or '0')
+        xbmcplugin.addDirectoryItem(handle, plugin_url, item, False)
 
-        # # try to use urlresolver
-        mediaUrl = None
-        # try:
-        #     mediaUrl = urlresolver.resolve(v.url)
-        # except:
-        #     pass
-
-        if mediaUrl:
-            debug(u'resolve youtube url:' + mediaUrl)
-            xbmcplugin.addDirectoryItem(handle, mediaUrl, item, False)
-        else:
-            # fallback to manually calling the youtube plugin
-            url = build_url({
-                # 'youtube': 'plugin://plugin.video.youtube/?path=/root/video&action=play_video&videoid={}'.format(id),
-                'youtube': 'plugin://plugin.video.youtube/play/?video_id={}'.format(id),
-                'time': time})
-
-            xbmcplugin.addDirectoryItem(handle, url, item, False)
-
-            #item.setPath(v.url)
-            #xbmcplugin.addDirectoryItem(handle, 'plugin://plugin.video.youtube/play/?video_id={}'.format(id), item, False)
     else:
         debug('Could not find video id in {}'.format(v.url))
 
@@ -154,27 +197,12 @@ def build_by_name():
         if callable(groupings):
             groupings = groupings()
 
-        # def by_year_then_by_name(lhs, rhs):
-        #     lhsY = lhs.year
-        #     rhsY = rhs.year
-        #     if lhsY:
-        #         if rhsY:
-        #             # debug('lhs y={} n={}, rhs y={} n={}'.format(lhs.year, lhs.name, rhs.year, rhs.name))
-        #             res = cmp(lhsY, rhsY)
-        #             if 0 != res:
-        #                 return -res
-        #             return by_name(lhs, rhs)
-        #         return -1
-        #     else:
-        #         if rhsY:
-        #             return 1
-        #         return by_name(lhs, rhs)
-
         sortedByName = sorted(groupings, cmp=by_name)
         for g in sortedByName:
             args.update({'name': g.name, 'link': g.url})
             url = build_url(args)
             xbmcplugin.addDirectoryItem(handle, url, xbmcgui.ListItem(g.name), isFolder=1)
+
     elif None is year:
         debug('name: ' + name)
         sc2.load()
@@ -216,9 +244,8 @@ def build_by_year():
             args.update({'year': year or -1})
             url = build_url(args)
             xbmcplugin.addDirectoryItem(handle, url, xbmcgui.ListItem(displayYear), isFolder=1)
+
     elif None is name:
-
-
         year = int(year)
         if -1 == year:
             year = None
@@ -257,77 +284,10 @@ def build_topic():
         else:
             build_by_name()
 
-    # if 1 == len(path):
-    #     sc2.load()
-    #     groupings = getattr(sc2, path[0])
-    #     if callable(groupings):
-    #         groupings = groupings()
-    #
-    #     def by_year_then_by_name(lhs, rhs):
-    #         lhsY = lhs.year
-    #         rhsY = rhs.year
-    #         if lhsY:
-    #             if rhsY:
-    #                 #debug('lhs y={} n={}, rhs y={} n={}'.format(lhs.year, lhs.name, rhs.year, rhs.name))
-    #                 res = cmp(lhsY, rhsY)
-    #                 if 0 != res:
-    #                     return -res
-    #                 return by_name(lhs, rhs)
-    #             return -1
-    #         else:
-    #             if rhsY:
-    #                 return 1
-    #             return by_name(lhs, rhs)
-    #
-    #     years = [x.year for x in groupings]
-    #     years = set(years)
-    #     years = sorted(years, reverse=True)
-    #     debug('years: ' + repr(years))
-    #     for year in years:
-    #         displayYear = str(year or 'Other')
-    #         url = build_url({'path': u'{}/{}'.format(slashPath, displayYear), 'year': year})
-    #         xbmcplugin.addDirectoryItem(handle, url, xbmcgui.ListItem(displayYear), isFolder=1)
-    #
-    # elif 2 == len(path):
-    #     year = get_year_from_args(args)
-    #     debug('year: ' + str(year))
-    #     sc2.load()
-    #     groupings = getattr(sc2, path[0])
-    #     if callable(groupings):
-    #         groupings = groupings()
-    #
-    #     filtered = [item for item in groupings if item.year == year]
-    #     sortedByName = sorted(filtered, cmp=by_name)
-    #     for g in sortedByName:
-    #         url = build_url({'path': u'{}/{}'.format(slashPath, g.name), 'year': year, 'link': g.url})
-    #         xbmcplugin.addDirectoryItem(handle, url, xbmcgui.ListItem(g.name), isFolder=1)
-    # else:
-    #     year = get_year_from_args(args)
-    #     debug('year: ' + str(year))
-    #     link = args.get('link', [""])[0]
-    #     if link:
-    #         debug('link: ' + link)
-    #         collection = sc2links.Collection(path[1], link)
-    #         collection.load()
-    #         if 3 == len(path):
-    #             for child in collection.children:
-    #                 url = build_url({
-    #                     'path': u'{}/{}'.format(slashPath, child.name),
-    #                     'year': year,
-    #                     'link': link})
-    #                 xbmcplugin.addDirectoryItem(handle, url, xbmcgui.ListItem(child.name), isFolder=1)
-    #         else:
-    #             byHeading = [g for g in collection.children if g.name == path[3]]
-    #             debug(u"with heading: " + str(len(byHeading)))
-    #             if len(byHeading):
-    #                 debug("#video: " + str(len(byHeading[0].videos)))
-    #                 for v in byHeading[0].videos:
-    #                     debug("video: " + v.url)
-    #                     add_video(v)
 
 
-def play_youtube(url, args):
-    time = args.get('time', '')
+def play(url, args):
+    time = args.get('time', None)
     # BROKEN URL RESOLVER
     # media_url = urlresolver.resolve('https://www.youtube.com/watch?v=7OXVPgu6urw')
     # # Create a playable item with a path to play.
@@ -374,11 +334,10 @@ def play_youtube(url, args):
             xbmc.sleep(delay * 1000)
             player.seekTime(int(time))
 
-
 try:
-    url = args.get('youtube', '')
+    url = args.get('play', '')
     if url:
-        play_youtube(url, args)
+        play(url, args)
 
     else:
         topic = args.get('topic', None)
@@ -395,6 +354,9 @@ try:
             args.update({'topic': 'shows'})
             url = build_url(args)
             xbmcplugin.addDirectoryItem(handle, url, xbmcgui.ListItem('Shows'), isFolder=1)
+
+            # v = sc2links.Video('https://www.twitch.tv/videos/161472611?t=07h49m09s', 'twitch', date(2017, 1, 1), "extra")
+            # add_video(v)
         else:
             debug('topic: ' + str(topic))
             build_topic()
@@ -402,6 +364,8 @@ try:
 except Exception as e:
     debug(u'Exception: ' + str(e))
     map(debug, str(traceback.format_exc()).splitlines())
+
+
 
 xbmcplugin.endOfDirectory(handle)
 
