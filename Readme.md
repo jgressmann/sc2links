@@ -12,7 +12,7 @@ Download the sources as zip file and install it. A tutorial on how to install 3r
 
 **Note:** you may need to restart Kodi beforehand. 
 
-To play the videos you'll probably also need to install the YouTube plugin.
+To play the videos you'll probably also need to install the YouTube and Twitch.tv plugins.
 
 ## FAQ
 
