@@ -1,6 +1,7 @@
 __author__ = 'jgressmann'
 
 from datetime import date
+import pickle
 import sys
 import traceback
 import urllib
@@ -42,19 +43,27 @@ sc2 = sc2links.Sc2Links()
 revealMatches = addon.getSetting('reveal_matches') == 'true'
 debug('reveal matches: ' + str(revealMatches))
 
+
 def get_youtube_info(url):
-    # parse something like https://www.youtube.com/watch?v=XqywDF675kQ
     parsed = urlparse.urlparse(url)
     args = urlparse.parse_qs(parsed.query)
-    #debug(str(args))
-    time = args.get('t', [''])[0]
-    id = args.get('v', [''])[0]
-    if not id:
-        # parse something like https://youtu.be/3A3guAd42Dw?t=9
-        if parsed.hostname == 'youtu.be':
-            pathParts = (parsed.path or '').split('/')
-            if len(pathParts) == 2:
-                id = pathParts[1]
+
+    id = None
+    time = None
+    # 'https://www.youtube.com/embed/TdjhjhbT3eA'
+    if parsed.path.startswith('/embed/'):
+        id = parsed.path[7:]
+    else:
+        # parse something like https://www.youtube.com/watch?v=XqywDF675kQ
+        #debug(str(args))
+        time = args.get('t', [''])[0]
+        id = args.get('v', [''])[0]
+        if not id:
+            # parse something like https://youtu.be/3A3guAd42Dw?t=9
+            if parsed.hostname == 'youtu.be':
+                pathParts = (parsed.path or '').split('/')
+                if len(pathParts) == 2:
+                    id = pathParts[1]
 
 
     if id:
@@ -71,6 +80,8 @@ def get_youtube_plugin_url(web_url):
             if time:
                 args['time'] = time
             return build_url(args)
+
+    debug('failed to get youtube id for ' + repr(web_url))
 
 
 def get_twitch_info(url):
@@ -101,17 +112,31 @@ def get_twitch_info(url):
 
         return seconds
 
+    id = None
+    time = None
     parsed = urlparse.urlparse(url)
+    args = urlparse.parse_qs(parsed.query)
     #debug('path: ' + str(parsed.path))
     if parsed.path.find('/videos/') == 0:
         id = parsed.path[8:]
         #debug('id: ' + str(id))
         if id and id.isdigit():
-            args = urlparse.parse_qs(parsed.query)
             time = args.get('t', [None])[0]
             if time:
                 time = _twitch_time_to_seconds(time)
-            return (id, time)
+
+
+    else:
+        # https://player.twitch.tv/?video=v187746182&autoplay=false&time=
+        args = urlparse.parse_qs(parsed.query)
+        id = args.get('video', [None])[0]
+        if id:
+            id = id[1:]
+            time = args.get('time', [None])[0]
+            if time:
+                time = _twitch_time_to_seconds(time)
+
+    return (id, time)
 
 
 def get_twitch_plugin_url(web_url):
@@ -125,6 +150,8 @@ def get_twitch_plugin_url(web_url):
             if time:
                 args['time'] = time
             return build_url(args)
+
+    debug('failed to get twitch id for ' + repr(web_url))
 
 def add_video(v):
     plugin_url = get_youtube_plugin_url(v.url) or get_twitch_plugin_url(v.url)
@@ -280,10 +307,128 @@ def build_topic():
     else:
         order = int(order)
         if order == 1:
-            build_by_year()
+            children = sc2.children
+            years = [x.year for x in children]
+            years = set(years)
+            years = sorted(years, reverse=True)
+            debug('years: ' + repr(years))
+            for year in years:
+                displayYear = str(year or 'Other')
+                args.update({'year': year or -1})
+                url = build_url(args)
+                xbmcplugin.addDirectoryItem(handle, url, xbmcgui.ListItem(displayYear), isFolder=1)
         else:
             build_by_name()
 
+def build():
+    level = int(args.get('level', 0))
+    debug("level " + repr(level))
+    args.update({'level': level+1})
+    data0 = args.get('data0', None)
+    if data0:
+        data0 = pickle.loads(data0)
+        debug("data0 " + repr(data0))
+
+    data1 = args.get('data1', None)
+    if data1:
+        data1 = pickle.loads(data1)
+        debug("data1 " + repr(data1))
+
+    year = args.get('year', None)
+    if year:
+        year = int(year)
+    debug("year " + repr(year))
+    name = args.get('name', None)
+    debug("name " + repr(name))
+    stage_name = args.get('stage_name', None)
+    debug("stage_name " + repr(stage_name))
+
+    if level == 0:
+        args.update({'order': 0})
+        url = build_url(args)
+        xbmcplugin.addDirectoryItem(handle, url, xbmcgui.ListItem('By Name'), isFolder=1)
+
+        args.update({'order': 1})
+        url = build_url(args)
+        xbmcplugin.addDirectoryItem(handle, url, xbmcgui.ListItem('By Year'), isFolder=1)
+    elif level == 1:
+        order = int(args.get('order', 0))
+        children = sc2.children
+        # debug("children: " + repr(children))
+        args.update({'data0': pickle.dumps(children)})
+        if order == 1:
+            years = [x.year for x in children]
+            years = set(years)
+            years = sorted(years, reverse=True)
+            debug('years: ' + repr(years))
+            for year in years:
+                displayYear = str(year or 'Other')
+                args.update({'year': year or -1})
+                url = build_url(args)
+                xbmcplugin.addDirectoryItem(handle, url, xbmcgui.ListItem(displayYear), isFolder=1)
+        else:
+            build_by_name()
+    elif level == 2:
+        children = data0
+        if year is None:
+            filtered = [child for child in children if child.name == name]
+            years = [x.year for x in filtered]
+            years = set(years)
+            years = sorted(years, reverse=True)
+            debug('years: ' + repr(years))
+            for year in years:
+                displayYear = str(year or 'Other')
+                args.update({'year': year or -1})
+                url = build_url(args)
+                xbmcplugin.addDirectoryItem(handle, url, xbmcgui.ListItem(displayYear), isFolder=1)
+        else:
+            filtered = [child for child in children if child.year == year]
+            sortedByName = sorted(filtered, cmp=by_name)
+            debug('# children by year' + repr(len(sortedByName)))
+            for child in sortedByName:
+                args.update({'name': child.name})
+                url = build_url(args)
+                xbmcplugin.addDirectoryItem(handle, url, xbmcgui.ListItem(child.name), isFolder=1)
+    elif level == 3:
+        item = None
+        for child in data0:
+            if child.name == name and child.year == year:
+                item = child
+                break
+
+        if item:
+            children = item.children
+            args.update({'data1': pickle.dumps(children)})
+            for child in children:
+                args.update({'stage_name': child.name})
+                url = build_url(args)
+                xbmcplugin.addDirectoryItem(handle, url, xbmcgui.ListItem(child.name), isFolder=1)
+
+    elif level == 4:
+        item = None
+        for child in data1:
+            if child.name == stage_name:
+                item = child
+                break
+
+        if item:
+            vods = item.children
+            for vod in vods:
+                url = vod.url
+                debug('vod url' + repr(url))
+                plugin_url = get_youtube_plugin_url(url) or get_twitch_plugin_url(url)
+                debug('plugin url:' + repr(plugin_url))
+                if plugin_url:
+                    label = 'Match ' + str(vod.match_number)
+                    if revealMatches:
+                        if len(vod.side2):
+                            label += u' {} - {}'.format(vod.side1, vod.side2)
+                        else:
+                            label += ' ' + vod.side1
+
+                    xbmcplugin.addDirectoryItem(handle, plugin_url, xbmcgui.ListItem(label), False)
+
+    xbmcplugin.endOfDirectory(handle)
 
 
 def play(url, args):
@@ -334,32 +479,18 @@ def play(url, args):
             xbmc.sleep(delay * 1000)
             player.seekTime(int(time))
 
+__run = 0
+
 try:
     url = args.get('play', '')
     if url:
         play(url, args)
 
     else:
-        topic = args.get('topic', None)
-        if not topic:
-            args.update({'topic': 'new'})
-            url = build_url(args)
-            xbmcplugin.addDirectoryItem(handle, url, xbmcgui.ListItem('New'), isFolder=1)
-            args.update({'topic': 'most_recent'})
-            url = build_url(args)
-            xbmcplugin.addDirectoryItem(handle, url, xbmcgui.ListItem('Most Recent'), isFolder=1)
-            args.update({'topic': 'tournaments'})
-            url = build_url(args)
-            xbmcplugin.addDirectoryItem(handle, url, xbmcgui.ListItem('Tournaments'), isFolder=1)
-            args.update({'topic': 'shows'})
-            url = build_url(args)
-            xbmcplugin.addDirectoryItem(handle, url, xbmcgui.ListItem('Shows'), isFolder=1)
+        build()
 
-            # v = sc2links.Video('https://www.twitch.tv/videos/161472611?t=07h49m09s', 'twitch', date(2017, 1, 1), "extra")
-            # add_video(v)
-        else:
-            debug('topic: ' + str(topic))
-            build_topic()
+    debug("run: " + repr(__run))
+    __run += 1
 
 except Exception as e:
     debug(u'Exception: ' + str(e))
@@ -367,5 +498,5 @@ except Exception as e:
 
 
 
-xbmcplugin.endOfDirectory(handle)
+
 
