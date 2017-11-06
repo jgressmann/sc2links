@@ -91,8 +91,12 @@ def level1(context):
 
                     texts = cleanup_html_strings(tag.contents[2].stripped_strings)
                     texts = filter(keep_text, texts)
-                    side1 = texts[0] if len(texts) > 0 else ''
-                    side2 = texts[1] if len(texts) > 0 else ''
+                    side1 = ''
+                    side2 = ''
+                    if len(texts) >= 1:
+                        side1 = texts[0]
+                        if len(texts) >= 2:
+                            side2 = texts[1]
 
                     vods.append(Vod(match_number=matchNumber, date=date, url=vodPageUrl, side1=side1, side2=side2))
 
@@ -114,8 +118,7 @@ def level0(*arg):
     #<a href="https://www.sc2links.com/tournament/?match=502">WCS Montreal</a></div><div class="voddate">September 11th 2017</div></br>
     for link in soup.find_all('a'):
         href = link.get('href')
-        #print(Sc2Links.DOMAIN + '/tournament/?match=')
-        print(href)
+        #print(href)
         if href and href.startswith('https://www.sc2links.com/tournament/?match='):
             texts = cleanup_html_strings(link.stripped_strings)
             name = u' '.join(texts)
@@ -131,8 +134,9 @@ def level0(*arg):
     return result
 
 def level0_done(*arg):
-    ctx = { 'url': 'https://www.sc2links.com/tournament/?match=509', 'year': 2017 }
-    return [Item(name='WCS Grand Finals', year=2017, ctx=ctx, fetch_children=level1)]
+    #ctx = { 'url': 'https://www.sc2links.com/tournament/?match=509', 'year': 2017 }
+    ctx = {'url': 'https://www.sc2links.com/tournament/?match=361', 'year': 2017}
+    return [Item(name='test', year=2017, ctx=ctx, fetch_children=level1)]
 
 class Vod:
     def __init__(self, **kwargs):
