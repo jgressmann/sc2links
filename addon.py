@@ -11,6 +11,7 @@ import xbmc
 import xbmcaddon
 import xbmcgui
 import xbmcplugin
+import zlib
 
 import resources.lib.sc2links as sc2links
 
@@ -38,7 +39,7 @@ handle = int(sys.argv[1])
 args = dict(urlparse.parse_qsl(sys.argv[2][1:]))
 debug("url args: " + repr(args))
 
-sc2 = sc2links.Sc2Links()
+
 
 revealMatches = addon.getSetting('reveal_matches') == 'true'
 debug('reveal matches: ' + str(revealMatches))
@@ -153,172 +154,10 @@ def get_twitch_plugin_url(web_url):
 
     debug('failed to get twitch id for ' + repr(web_url))
 
-def add_video(v):
-    plugin_url = get_youtube_plugin_url(v.url) or get_twitch_plugin_url(v.url)
-    debug('plugin url:' + plugin_url)
-    if plugin_url:
-        item = xbmcgui.ListItem()
-        videoLabels = {}
-        if v.date:
-            videoLabels['date'] = v.date.strftime("%d.%m.%Y")  # date : string (d.m.Y / 01.01.2009) - file date
-            videoLabels['aired'] = v.date.strftime("%Y-%m-%d")  # aired : string (2008-12-07)
-            videoLabels['year'] = v.date.year  # year : integer (2009)
-            # dateadded: string(Y - m - d h:m:s = 2009 - 04 - 05 23:16:04)
-
-        item.setInfo('video', videoLabels)
-
-        if revealMatches and v.extra:
-            label = u'{} - {}'.format(v.name, v.extra)
-            # debug(u'label: ' + label)
-            item.setLabel(label)
-        else:
-            item.setLabel(v.name)
-
-        xbmcplugin.addDirectoryItem(handle, plugin_url, item, False)
-
-    else:
-        debug('Could not find video id in {}'.format(v.url))
-
-def get_year_from_args(args):
-    year = args.get('year', [None])[0]
-    if year:
-        year = int(year)
-    return year
-
-def build_show():
-    # year = get_year_from_args(args)
-    # debug('year: ' + str(year))
-    # name = get_name_from_args(args)
-    # debug('name: ' + name)
-    link = args.get('link', None)
-    debug('link: ' + link)
-    match = args.get('match', None)
-    debug('match: ' + str(match))
-
-    collection = sc2links.Collection('dummy', link)
-    collection.load()
-    if match is None:
-        for child in collection.children:
-            args.update({'match': child.name})
-            url = build_url(args)
-            xbmcplugin.addDirectoryItem(handle, url, xbmcgui.ListItem(child.name), isFolder=1)
-    else:
-        byHeading = [g for g in collection.children if g.name == match]
-        debug(u"with heading: " + str(len(byHeading)))
-        if len(byHeading):
-            debug("#video: " + str(len(byHeading[0].videos)))
-            for v in byHeading[0].videos:
-                debug("video: " + v.url)
-                add_video(v)
+compress = True
 
 def by_name(lhs, rhs):
     return cmp(lhs.name, rhs.name)
-
-def build_by_name():
-    topic = args.get('topic', None)
-    name = args.get('name', None)
-    year = args.get('year', None)
-    if None is name:
-        sc2.load()
-        groupings = getattr(sc2, topic)
-        if callable(groupings):
-            groupings = groupings()
-
-        sortedByName = sorted(groupings, cmp=by_name)
-        for g in sortedByName:
-            args.update({'name': g.name, 'link': g.url})
-            url = build_url(args)
-            xbmcplugin.addDirectoryItem(handle, url, xbmcgui.ListItem(g.name), isFolder=1)
-
-    elif None is year:
-        debug('name: ' + name)
-        sc2.load()
-        groupings = getattr(sc2, topic)
-        if callable(groupings):
-            groupings = groupings()
-
-        filtered = [item for item in groupings if item.name == name]
-        years = [x.year for x in filtered]
-        years = set(years)
-        years = sorted(years, reverse=True)
-        debug('years: ' + repr(years))
-        for year in years:
-            displayYear = str(year or 'Other')
-            args.update({'year': year or -1})
-            url = build_url(args)
-            xbmcplugin.addDirectoryItem(handle, url, xbmcgui.ListItem(displayYear), isFolder=1)
-    else:
-        build_show()
-
-
-def build_by_year():
-    topic = args.get('topic', None)
-    year = args.get('year', None)
-    name = args.get('name', None)
-
-    if None is year:
-        sc2.load()
-        groupings = getattr(sc2, topic)
-        if callable(groupings):
-            groupings = groupings()
-
-        years = [x.year for x in groupings]
-        years = set(years)
-        years = sorted(years, reverse=True)
-        debug('years: ' + repr(years))
-        for year in years:
-            displayYear = str(year or 'Other')
-            args.update({'year': year or -1})
-            url = build_url(args)
-            xbmcplugin.addDirectoryItem(handle, url, xbmcgui.ListItem(displayYear), isFolder=1)
-
-    elif None is name:
-        year = int(year)
-        if -1 == year:
-            year = None
-
-        debug('year: ' + str(year))
-        sc2.load()
-        groupings = getattr(sc2, topic)
-        if callable(groupings):
-            groupings = groupings()
-
-        filtered = [item for item in groupings if item.year == year]
-        sortedByName = sorted(filtered, cmp=by_name)
-        for g in sortedByName:
-            args.update({'name': g.name, 'link': g.url})
-            url = build_url(args)
-            xbmcplugin.addDirectoryItem(handle, url, xbmcgui.ListItem(g.name), isFolder=1)
-    else:
-        build_show()
-
-
-def build_topic():
-    order = args.get('order', None)
-    if None is order:
-        args.update({'order': 0})
-        url = build_url(args)
-        xbmcplugin.addDirectoryItem(handle, url, xbmcgui.ListItem('By Name'), isFolder=1)
-
-        args.update({'order': 1})
-        url = build_url(args)
-        xbmcplugin.addDirectoryItem(handle, url, xbmcgui.ListItem('By Year'), isFolder=1)
-
-    else:
-        order = int(order)
-        if order == 1:
-            children = sc2.children
-            years = [x.year for x in children]
-            years = set(years)
-            years = sorted(years, reverse=True)
-            debug('years: ' + repr(years))
-            for year in years:
-                displayYear = str(year or 'Other')
-                args.update({'year': year or -1})
-                url = build_url(args)
-                xbmcplugin.addDirectoryItem(handle, url, xbmcgui.ListItem(displayYear), isFolder=1)
-        else:
-            build_by_name()
 
 def build():
     level = int(args.get('level', 0))
@@ -326,13 +165,21 @@ def build():
     args.update({'level': level+1})
     data0 = args.get('data0', None)
     if data0:
+        if compress:
+            #debug("data1z " + repr(data0))
+            data0 = zlib.decompress(data0)
+            #debug("data1p " + repr(data0))
         data0 = pickle.loads(data0)
-        debug("data0 " + repr(data0))
+        #debug("data0 " + repr(data0))
 
     data1 = args.get('data1', None)
     if data1:
+        if compress:
+            #debug("data1z " + repr(data1))
+            data1 = zlib.decompress(data1)
+        #debug("datap " + repr(data1))
         data1 = pickle.loads(data1)
-        debug("data1 " + repr(data1))
+        #debug("data1 " + repr(data1))
 
     year = args.get('year', None)
     if year:
@@ -353,21 +200,32 @@ def build():
         xbmcplugin.addDirectoryItem(handle, url, xbmcgui.ListItem('By Year'), isFolder=1)
     elif level == 1:
         order = int(args.get('order', 0))
+        sc2 = sc2links.Sc2Links()
         children = sc2.children
         # debug("children: " + repr(children))
-        args.update({'data0': pickle.dumps(children)})
+        data = pickle.dumps(children)
+        if compress:
+            data = zlib.compress(data)
+        args.update({'data0': data})
         if order == 1:
             years = [x.year for x in children]
             years = set(years)
             years = sorted(years, reverse=True)
-            debug('years: ' + repr(years))
+            #debug('years: ' + repr(years))
             for year in years:
                 displayYear = str(year or 'Other')
                 args.update({'year': year or -1})
                 url = build_url(args)
                 xbmcplugin.addDirectoryItem(handle, url, xbmcgui.ListItem(displayYear), isFolder=1)
         else:
-            build_by_name()
+            names = [x.name for x in children]
+            names = set(names)
+            names = sorted(names)
+            #debug('names: ' + repr(names))
+            for name in names:
+                args.update({'name': name})
+                url = build_url(args)
+                xbmcplugin.addDirectoryItem(handle, url, xbmcgui.ListItem(name), isFolder=1)
     elif level == 2:
         children = data0
         if year is None:
@@ -375,7 +233,7 @@ def build():
             years = [x.year for x in filtered]
             years = set(years)
             years = sorted(years, reverse=True)
-            debug('years: ' + repr(years))
+            #debug('# children by name' + repr(len(years)))
             for year in years:
                 displayYear = str(year or 'Other')
                 args.update({'year': year or -1})
@@ -384,7 +242,7 @@ def build():
         else:
             filtered = [child for child in children if child.year == year]
             sortedByName = sorted(filtered, cmp=by_name)
-            debug('# children by year' + repr(len(sortedByName)))
+            #debug('# children by year' + repr(len(sortedByName)))
             for child in sortedByName:
                 args.update({'name': child.name})
                 url = build_url(args)
@@ -398,7 +256,10 @@ def build():
 
         if item:
             children = item.children
-            args.update({'data1': pickle.dumps(children)})
+            data = pickle.dumps(children)
+            if compress:
+                data = zlib.compress(data)
+            args.update({'data1': data})
             for child in children:
                 args.update({'stage_name': child.name})
                 url = build_url(args)
