@@ -277,17 +277,23 @@ def build():
             for vod in vods:
                 url = vod.url
                 debug('vod url' + repr(url))
+
+                if not url: # match didn't take place
+                    continue
+
                 plugin_url = get_youtube_plugin_url(url) or get_twitch_plugin_url(url)
                 debug('plugin url:' + repr(plugin_url))
-                if plugin_url:
-                    label = 'Match ' + str(vod.match_number)
-                    if revealMatches:
-                        if len(vod.side2):
-                            label += u' {} - {}'.format(vod.side1, vod.side2)
-                        else:
-                            label += ' ' + vod.side1
+                if not plugin_url: # couldn't resolve vod url
+                    continue
 
-                    xbmcplugin.addDirectoryItem(handle, plugin_url, xbmcgui.ListItem(label), False)
+                label = 'Match ' + str(vod.match_number)
+                if revealMatches:
+                    if len(vod.side2):
+                        label += u' {} - {}'.format(vod.side1, vod.side2)
+                    else:
+                        label += ' ' + vod.side1
+
+                xbmcplugin.addDirectoryItem(handle, plugin_url, xbmcgui.ListItem(label), False)
 
     xbmcplugin.endOfDirectory(handle)
 
