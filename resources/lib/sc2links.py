@@ -112,7 +112,19 @@ def level1(context):
 
     return result
 
-def level0(*arg):
+def level0(context):
+    years = context.get('years', [])
+    minYear = -1 if len(years) == 0 else min(years)
+
+    def accept_year(y):
+        if len(years) == 0:
+            return True
+
+        if y < minYear:
+            return False
+
+        return year in years
+
     result = []
     soup = get_bs('https://www.sc2links.com/vods/')
     #<a href="https://www.sc2links.com/tournament/?match=502">WCS Montreal</a></div><div class="voddate">September 11th 2017</div></br>
@@ -128,6 +140,9 @@ def level0(*arg):
                 if len(s) == 4 and s.isdigit():
                     year = int(s)
                     break
+
+            if not accept_year(year):
+                break
 
             result.append(Item(name=name, year=year, ctx={ 'url': href, 'year': year }, fetch_children=level1))
 
@@ -212,6 +227,6 @@ class Item:
 
 class Sc2Links(Item):
     LEVELS = 3
-    def __init__(self):
-        Item.__init__(self, fetch_children=level0)
+    def __init__(self, years=[]):
+        Item.__init__(self, ctx={'years': years}, fetch_children=level0)
 

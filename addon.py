@@ -40,9 +40,14 @@ args = dict(urlparse.parse_qsl(sys.argv[2][1:]))
 debug("url args: " + repr(args))
 
 
-
 revealMatches = addon.getSetting('reveal_matches') == 'true'
 debug('reveal matches: ' + str(revealMatches))
+lastNYears = 0
+try:
+    lastNYears = int(addon.getSetting('last_n_years_to_fetch'))
+except:
+    pass
+debug('last_n_years_to_fetch: ' + repr(lastNYears))
 
 
 def get_youtube_info(url):
@@ -189,6 +194,10 @@ def build():
     debug("name " + repr(name))
     stage_name = args.get('stage_name', None)
     debug("stage_name " + repr(stage_name))
+    overrideFilter = args.get('override_filter', False)
+    debug("overrideFilter " + repr(overrideFilter))
+    # yearsFiltered = args.get('years_filtered', None)
+    # debug("yearsFiltered " + repr(yearsFiltered))
 
     if level == 0:
         args.update({'order': 0})
@@ -200,7 +209,17 @@ def build():
         xbmcplugin.addDirectoryItem(handle, url, xbmcgui.ListItem('By Year'), isFolder=1)
     elif level == 1:
         order = int(args.get('order', 0))
-        sc2 = sc2links.Sc2Links()
+
+        # want only the last n years worth of shows?
+        yearsFiltered = not overrideFilter and lastNYears >= 1
+        if yearsFiltered:
+            currentYear = date.today().year + 1
+            years = [x for x in range(currentYear-(lastNYears), currentYear)]
+            #debug("years: " + repr(years))
+            sc2 = sc2links.Sc2Links(years=years)
+        else:
+            sc2 = sc2links.Sc2Links()
+
         children = sc2.children
         # debug("children: " + repr(children))
         data = pickle.dumps(children)
@@ -226,6 +245,13 @@ def build():
                 args.update({'name': name})
                 url = build_url(args)
                 xbmcplugin.addDirectoryItem(handle, url, xbmcgui.ListItem(name), isFolder=1)
+
+        if yearsFiltered: # load all item
+            args.update({'override_filter': True, 'level': level})
+            debug('args ' + repr(args))
+            url = build_url(args)
+            xbmcplugin.addDirectoryItem(handle, url, xbmcgui.ListItem("Load all"), isFolder=1)
+
     elif level == 2:
         children = data0
         if year is None:
@@ -247,6 +273,9 @@ def build():
                 args.update({'name': child.name})
                 url = build_url(args)
                 xbmcplugin.addDirectoryItem(handle, url, xbmcgui.ListItem(child.name), isFolder=1)
+
+
+
     elif level == 3:
         item = None
         for child in data0:
