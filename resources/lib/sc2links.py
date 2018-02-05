@@ -80,17 +80,19 @@ def level1(context):
                 break
 
             if tag.name == 'h5':
-                if len(tag.contents) == 4:
-                    vodPageUrl = tag.contents[0].get('href')
-                    matchString = cleanup_html_strings(tag.contents[0].stripped_strings)[0]
+                texts = filter(keep_text, cleanup_html_strings(tag.stripped_strings))
+                aTags = tag.find_all('a')
+                if len(texts) >= 3 and len(aTags) > 0:
+                    vodPageUrl = aTags[0].get('href')
+                    matchString = texts[0]
+                    del texts[0]
                     matchNumber = int(matchString.split(' ')[1])
-                    dateString = cleanup_html_strings(tag.contents[3].stripped_strings)[0]
+                    dateString = texts[-1]
+                    del texts[-1]
                     month = dateString[0:2]
                     day = dateString[3:5]
                     date = datetime.date(year, int(month), int(day))
 
-                    texts = cleanup_html_strings(tag.contents[2].stripped_strings)
-                    texts = filter(keep_text, texts)
                     side1 = ''
                     side2 = ''
                     if len(texts) >= 1:
